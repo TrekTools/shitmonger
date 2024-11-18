@@ -1,0 +1,8 @@
+.background {
+  background-image: url('/assets/monger.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+} 
