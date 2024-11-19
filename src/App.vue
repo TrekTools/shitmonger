@@ -1,9 +1,14 @@
 <template>
   <div id="app">
     <div class="top-controls">
-      <button class="win95-button wallet-button" @click="connectWallet">
-        {{ walletAddress ? truncateAddress(walletAddress) : '💳 Connect Wallet' }}
-      </button>
+      <div class="wallet-info">
+        <button class="win95-button wallet-button" @click="connectWallet">
+          {{ walletAddress ? truncateAddress(walletAddress) : '💳 Connect Wallet' }}
+        </button>
+        <div v-if="walletAddress" class="balance-display">
+          $SEI: {{ formattedSeiBalance }}
+        </div>
+      </div>
       <button class="win95-button audio-button" @click="toggleAudio">
         {{ isPlaying ? '🔊 Mute' : '🔈 Unmute' }}
       </button>
@@ -53,7 +58,13 @@ export default {
       chainId: 'pacific-1', // or 'atlantic-2' for testnet
       rpcEndpoint: 'https://sei-rpc.polkachu.com', // example RPC endpoint
       currentTime: '',
-      showStartMenu: false
+      showStartMenu: false,
+      seiBalance: 0 // Added for SEI balance
+    }
+  },
+  computed: {
+    formattedSeiBalance() {
+      return (this.seiBalance / 1000000).toFixed(6)
     }
   },
   mounted() {
@@ -80,7 +91,20 @@ export default {
           offlineSigner
         );
 
-        console.log('Connected to Compass wallet:', this.walletAddress);
+        // Fetch SEI balance
+        try {
+          const response = await fetch(
+            `https://rest.wallet.pacific-1.sei.io/cosmos/bank/v1beta1/spendable_balances/${this.walletAddress}?pagination.limit=1000`
+          );
+          const data = await response.json();
+          
+          const seiBalance = data.balances.find(b => b.denom === 'usei');
+          this.seiBalance = seiBalance ? parseInt(seiBalance.amount) : 0;
+        } catch (error) {
+          console.error('Error fetching SEI balance:', error);
+          this.seiBalance = 0;
+        }
+
       } catch (error) {
         console.error('Error connecting wallet:', error);
         alert('Failed to connect wallet');
@@ -280,5 +304,24 @@ body {
 /* Ensure HelloWorld component takes proper width */
 .content-wrapper .win95-window {
   margin-bottom: 0;
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.balance-display {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  padding: 6px 12px;
+  font-family: 'MS Sans Serif', 'Microsoft Sans Serif', sans-serif;
+  font-size: 12px;
+  color: #008000;
+  font-weight: bold;
+  min-width: 120px;
+  text-align: right;
 }
 </style>
