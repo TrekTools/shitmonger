@@ -1,58 +1,66 @@
 <template>
-  <Win95Window 
-    title="Your Runners" 
-    :initial-x="100"
-    :initial-y="initialWindowY"
-    :initial-width="500"
-    :initial-height="600"
-    @close="$router.push('/')"
-  >
-    <!-- Native Tokens Section -->
-    <div class="content-section">
-      <h3>Native Tokens</h3>
-      <div class="token-list" v-if="tokenData?.native?.length">
-        <div v-for="token in tokenData.native" :key="token.token.address" class="token-item">
-          <span class="token-symbol">{{ token.token.symbol }}</span>
-          <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+  <div>
+    <Win95Window 
+      title="Your Runners" 
+      :initial-x="100"
+      :initial-y="initialWindowY"
+      :initial-width="500"
+      :initial-height="600"
+      @close="$router.push('/')"
+    >
+      <!-- Native Tokens Section -->
+      <div class="content-section">
+        <h3>Native Tokens</h3>
+        <div class="token-list" v-if="tokenData?.native?.length">
+          <div v-for="token in tokenData.native" :key="token.token.address" class="token-item">
+            <span class="token-symbol">{{ token.token.symbol }}</span>
+            <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+          </div>
         </div>
+        <div v-else class="no-data">No native tokens found</div>
       </div>
-      <div v-else class="no-data">No native tokens found</div>
-    </div>
 
-    <!-- ERC-20 Tokens Section -->
-    <div class="content-section">
-      <h3>ERC-20 Tokens</h3>
-      <div class="token-list" v-if="tokenData?.erc20?.length">
-        <div v-for="token in tokenData.erc20" :key="token.token.address" class="token-item">
-          <span class="token-symbol">{{ token.token.symbol }}</span>
-          <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+      <!-- ERC-20 Tokens Section -->
+      <div class="content-section">
+        <h3>ERC-20 Tokens</h3>
+        <div class="token-list" v-if="tokenData?.erc20?.length">
+          <div v-for="token in tokenData.erc20" :key="token.token.address" class="token-item">
+            <span class="token-symbol">{{ token.token.symbol }}</span>
+            <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+          </div>
         </div>
+        <div v-else class="no-data">No ERC-20 tokens found</div>
       </div>
-      <div v-else class="no-data">No ERC-20 tokens found</div>
-    </div>
 
-    <!-- CW-20 Tokens Section -->
-    <div class="content-section">
-      <h3>CW-20 Tokens</h3>
-      <div class="token-list" v-if="tokenData?.cw20?.length">
-        <div v-for="token in tokenData.cw20" :key="token.token.address" class="token-item">
-          <span class="token-symbol">{{ token.token.symbol }}</span>
-          <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+      <!-- CW-20 Tokens Section -->
+      <div class="content-section">
+        <h3>CW-20 Tokens</h3>
+        <div class="token-list" v-if="tokenData?.cw20?.length">
+          <div v-for="token in tokenData.cw20" :key="token.token.address" class="token-item">
+            <span class="token-symbol">{{ token.token.symbol }}</span>
+            <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+          </div>
         </div>
+        <div v-else class="no-data">No CW-20 tokens found</div>
       </div>
-      <div v-else class="no-data">No CW-20 tokens found</div>
-    </div>
-  </Win95Window>
+    </Win95Window>
+    <TokenListWindow 
+      :token-data="tokenData"
+      @close="$router.push('/')"
+    />
+  </div>
 </template>
 
 <script>
 import Win95Window from '@/components/Win95Window.vue'
+import TokenListWindow from '@/components/TokenListWindow.vue'
 import { fetchTokenData } from '../utils/tokenQueries'
 
 export default {
   name: 'YourRunners',
   components: {
-    Win95Window
+    Win95Window,
+    TokenListWindow
   },
   data() {
     return {
