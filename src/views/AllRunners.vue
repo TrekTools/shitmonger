@@ -47,24 +47,44 @@
       </div>
     </Win95Window>
 
-    <PriceCharts />
+    <PriceCharts ref="priceCharts" />
+    <TokenTable :timeseries-data="timeseriesData" />
   </div>
 </template>
 
 <script>
 import Win95Window from '@/components/Win95Window.vue'
 import PriceCharts from '@/components/PriceCharts.vue'
+import TokenTable from '@/components/TokenTable.vue'
 
 export default {
   name: 'AllRunners',
   components: {
     Win95Window,
-    PriceCharts
+    PriceCharts,
+    TokenTable
+  },
+  data() {
+    return {
+      timeseriesData: []
+    }
   },
   computed: {
     initialWindowY() {
       return typeof window !== 'undefined' ? window.innerHeight - 700 : 300;
     }
+  },
+  mounted() {
+    // Watch for timeseries data updates from PriceCharts
+    this.$watch(
+      () => this.$refs.priceCharts?.timeseriesData,
+      (newData) => {
+        if (newData) {
+          this.timeseriesData = newData
+        }
+      },
+      { immediate: true }
+    )
   },
   props: {
     tokenData: {
