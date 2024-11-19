@@ -1,10 +1,10 @@
 <template>
     <Win95Window 
-      title="Token Data" 
-      :initial-x="600"
-      :initial-y="initialWindowY"
-      :initial-width="1000"
-      :initial-height="400"
+      title="Token Table"
+      :initial-x="initialX"
+      :initial-y="initialY"
+      :initial-width="800"
+      :initial-height="300"
       @close="$emit('close')"
     >
       <div class="table-panel">

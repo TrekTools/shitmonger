@@ -17,10 +17,7 @@
     <audio ref="audioPlayer" loop>
       <source src="@/assets/mohocofo.mp3" type="audio/mpeg">
     </audio>
-    
-    <div class="content-wrapper">
-      <HelloWorld msg="Welcome to the Shitmonger! What can I ape for you today?"/>
-    </div>
+
     
     <!-- Windows 95 Taskbar -->
     <div class="win95-taskbar">
@@ -42,15 +39,11 @@
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
 import { getEvmAddress } from '@/utils/addressQueries'
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld
-  },
   data() {
     return {
       isPlaying: false,
