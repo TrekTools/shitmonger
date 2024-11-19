@@ -1,22 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import AllRunners from '@/views/AllRunners.vue'
-import YourRunners from '@/views/YourRunners.vue'
-import HelloWorld from '@/components/HelloWorld.vue'
+import AllRunners from '../views/AllRunners.vue'
+import YourRunners from '../views/YourRunners.vue'
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HelloWorld
-  },
-  {
-    path: '/all-runners',
-    name: 'allRunners',
     component: AllRunners
   },
   {
     path: '/your-runners',
-    name: 'yourRunners',
+    name: 'your-runners',
     component: YourRunners
   }
 ]

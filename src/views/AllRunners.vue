@@ -6,13 +6,13 @@
         :initial-y="initialWindowY"
         :initial-width="500"
         :initial-height="600"
-        @close="$router.push('/')"
+        @close="handleClose"
       >
         <div class="token-lists">
           <!-- Native Tokens Section -->
           <div class="content-section">
             <h3>Native Tokens</h3>
-            <div class="token-list" v-if="tokenData?.native?.length">
+            <div v-if="tokenData?.native?.length" class="token-list">
               <div v-for="token in tokenData.native" :key="token.token.address" class="token-item">
                 <span class="token-symbol">{{ token.token.symbol }}</span>
                 <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
@@ -24,7 +24,7 @@
           <!-- ERC-20 Tokens Section -->
           <div class="content-section">
             <h3>ERC-20 Tokens</h3>
-            <div class="token-list" v-if="tokenData?.erc20?.length">
+            <div v-if="tokenData?.erc20?.length" class="token-list">
               <div v-for="token in tokenData.erc20" :key="token.token.address" class="token-item">
                 <span class="token-symbol">{{ token.token.symbol }}</span>
                 <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
@@ -36,7 +36,7 @@
           <!-- CW-20 Tokens Section -->
           <div class="content-section">
             <h3>CW-20 Tokens</h3>
-            <div class="token-list" v-if="tokenData?.cw20?.length">
+            <div v-if="tokenData?.cw20?.length" class="token-list">
               <div v-for="token in tokenData.cw20" :key="token.token.address" class="token-item">
                 <span class="token-symbol">{{ token.token.symbol }}</span>
                 <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
@@ -47,8 +47,19 @@
         </div>
       </Win95Window>
   
-      <PriceCharts ref="priceCharts" />
-      <TokenTable :timeseries-data="timeseriesData" />
+      <PriceCharts 
+        ref="priceCharts"
+        :initial-x="600"
+        :initial-y="initialWindowY"
+        :initial-width="800"
+        :initial-height="400"
+        @close="handleClose"
+      />
+      <TokenTable 
+        :timeseries-data="timeseriesData"
+        :initial-x="600"
+        :initial-y="initialWindowY + 450"
+      />
     </div>
   </template>
   
@@ -56,6 +67,8 @@
   import Win95Window from '@/components/Win95Window.vue'
   import PriceCharts from '@/components/PriceCharts.vue'
   import TokenTable from '@/components/TokenTable.vue'
+  import { getEvmAddress } from '../utils/addressQueries'
+  import { fetchTokenData } from '../utils/tokenQueries'
   
   export default {
     name: 'AllRunners',
@@ -66,7 +79,14 @@
     },
     data() {
       return {
-        timeseriesData: []
+        timeseriesData: [],
+        tokenData: {
+          cw20: [],
+          native: [],
+          erc20: []
+        },
+        loading: false,
+        error: null
       }
     },
     computed: {
@@ -74,33 +94,53 @@
         return typeof window !== 'undefined' ? window.innerHeight - 700 : 300;
       }
     },
-    mounted() {
-      // Watch for timeseries data updates from PriceCharts
-      this.$watch(
-        () => this.$refs.priceCharts?.timeseriesData,
-        (newData) => {
-          if (newData) {
-            this.timeseriesData = newData
-          }
-        },
-        { immediate: true }
-      )
-    },
-    props: {
-      tokenData: {
-        type: Object,
-        default: () => ({
-          cw20: [],
-          native: [],
-          erc20: []
-        })
+    async mounted() {
+      try {
+        this.loading = true;
+        
+        // Watch for timeseries data updates from PriceCharts
+        this.$watch(
+          () => this.$refs.priceCharts?.timeseriesData,
+          (newData) => {
+            if (newData) {
+              this.timeseriesData = newData
+            }
+          },
+          { immediate: true }
+        )
+
+        // Fetch token data
+        const seiAddress = this.$root.walletAddress;
+        if (seiAddress) {
+          // Get EVM address first
+          const evmAddress = await getEvmAddress(seiAddress);
+          console.log('Addresses:', { seiAddress, evmAddress });
+          
+          // Fetch token data with both addresses
+          const data = await fetchTokenData(seiAddress, evmAddress || '');
+          this.tokenData = data;
+        }
+      } catch (error) {
+        console.error('Error in AllRunners:', error);
+        this.error = error.message;
+      } finally {
+        this.loading = false;
       }
     },
     methods: {
-      formatTokenValue(value, decimals) {
-        if (!value) return '0'
-        const number = parseInt(value) / Math.pow(10, decimals)
-        return number.toLocaleString(undefined, { maximumFractionDigits: 6 })
+      formatTokenValue(value, decimals = 6) {
+        if (!value) return '0';
+        
+        const actualValue = Number(value) / Math.pow(10, decimals);
+        
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 6,
+          useGrouping: true
+        }).format(actualValue);
+      },
+      handleClose() {
+        console.log('Window closed');
       }
     }
   }
