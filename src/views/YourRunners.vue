@@ -3,6 +3,8 @@
     title="Your Runners" 
     :initial-x="100"
     :initial-y="initialWindowY"
+    :initial-width="500"
+    :initial-height="600"
     @close="$router.push('/')"
   >
     <!-- Native Tokens Section -->
@@ -53,7 +55,7 @@ export default {
   },
   computed: {
     initialWindowY() {
-      return typeof window !== 'undefined' ? window.innerHeight - 400 : 300;
+      return typeof window !== 'undefined' ? window.innerHeight - 700 : 300;
     }
   },
   props: {
