@@ -47,35 +47,47 @@
 
 <script>
 import Win95Window from '@/components/Win95Window.vue'
+import { fetchTokenData } from '../utils/tokenQueries'
 
 export default {
   name: 'YourRunners',
   components: {
     Win95Window
   },
+  data() {
+    return {
+      tokenData: {
+        cw20: [],
+        native: [],
+        erc20: []
+      }
+    }
+  },
   computed: {
     initialWindowY() {
       return typeof window !== 'undefined' ? window.innerHeight - 700 : 300;
     }
   },
-  props: {
-    tokenData: {
-      type: Object,
-      default: () => ({
-        cw20: [],
-        native: [],
-        erc20: []
-      })
+  async mounted() {
+    try {
+      const seiAddress = this.$root.walletAddress;
+      const evmAddress = this.$root.evmAddress;
+      
+      if (seiAddress) {
+        console.log('Fetching token data for:', { seiAddress, evmAddress });
+        const data = await fetchTokenData(seiAddress, evmAddress || '');
+        this.tokenData = data;
+      }
+    } catch (error) {
+      console.error('Error fetching token data:', error);
     }
   },
   methods: {
     formatTokenValue(value, decimals = 6) {
       if (!value) return '0';
       
-      // Convert from string to number and divide by 10^decimals
       const actualValue = Number(value) / Math.pow(10, decimals);
       
-      // Format with appropriate decimal places
       return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 6,

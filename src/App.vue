@@ -44,6 +44,7 @@
 <script>
 import HelloWorld from './components/HelloWorld.vue'
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate'
+import { getEvmAddress } from '@/utils/addressQueries'
 
 export default {
   name: 'App',
@@ -54,6 +55,7 @@ export default {
     return {
       isPlaying: false,
       walletAddress: null,
+      evmAddress: null,
       client: null,
       chainId: 'pacific-1', // or 'atlantic-2' for testnet
       rpcEndpoint: 'https://sei-rpc.polkachu.com', // example RPC endpoint
@@ -85,10 +87,25 @@ export default {
         const accounts = await offlineSigner.getAccounts();
         this.walletAddress = accounts[0].address;
 
+        // Get EVM address from seitrace API
+        try {
+          this.evmAddress = await getEvmAddress(this.walletAddress);
+          console.log('EVM address:', this.evmAddress);
+        } catch (error) {
+          console.error('Error getting EVM address:', error);
+          this.evmAddress = null;
+        }
+
         // Create signing client
         this.client = await SigningCosmWasmClient.connectWithSigner(
           this.rpcEndpoint,
-          offlineSigner
+          offlineSigner,
+          {
+            gasPrice: {
+              amount: "0.1",
+              denom: "usei"
+            }
+          }
         );
 
         // Fetch SEI balance
