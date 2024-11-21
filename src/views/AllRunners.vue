@@ -19,8 +19,15 @@
             <h3>Native Tokens</h3>
             <div v-if="tokenData.native && tokenData.native.length > 0" class="token-list">
               <div v-for="token in tokenData.native" :key="token.token.address" class="token-item">
-                <span class="token-symbol">{{ token.token.symbol }}</span>
-                <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                <div class="token-info">
+                  <span class="token-symbol">{{ token.token.symbol }}</span>
+                  <span class="token-name">{{ token.token.name || 'Unknown' }}</span>
+                  <span class="token-address">{{ token.token.address }}</span>
+                </div>
+                <div class="token-values">
+                  <span class="token-amount">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                  <span class="token-usd">${{ formatUsdValue(token) }}</span>
+                </div>
               </div>
             </div>
             <div v-else class="no-data">No native tokens found</div>
@@ -31,8 +38,16 @@
             <h3>ERC-20 Tokens</h3>
             <div v-if="tokenData.erc20 && tokenData.erc20.length > 0" class="token-list">
               <div v-for="token in tokenData.erc20" :key="token.token.address" class="token-item">
-                <span class="token-symbol">{{ token.token.symbol }}</span>
-                <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                <div class="token-info">
+                  <span class="token-symbol">{{ token.token.symbol }}</span>
+                  <span class="token-name">{{ token.token.name || 'Unknown' }}</span>
+                  <span class="token-address">{{ token.token.address }}</span>
+                  <span class="token-evm" v-if="token.token.evmAddress">EVM: {{ token.token.evmAddress }}</span>
+                </div>
+                <div class="token-values">
+                  <span class="token-amount">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                  <span class="token-usd">${{ formatUsdValue(token) }}</span>
+                </div>
               </div>
             </div>
             <div v-else class="no-data">No ERC-20 tokens found</div>
@@ -43,8 +58,16 @@
             <h3>CW-20 Tokens</h3>
             <div v-if="tokenData.cw20 && tokenData.cw20.length > 0" class="token-list">
               <div v-for="token in tokenData.cw20" :key="token.token.address" class="token-item">
-                <span class="token-symbol">{{ token.token.symbol }}</span>
-                <span class="token-value">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                <div class="token-info">
+                  <span class="token-symbol">{{ token.token.symbol }}</span>
+                  <span class="token-name">{{ token.token.name || 'Unknown' }}</span>
+                  <span class="token-address">{{ token.token.address }}</span>
+                  <span class="token-evm" v-if="token.token.evmAddress">EVM: {{ token.token.evmAddress }}</span>
+                </div>
+                <div class="token-values">
+                  <span class="token-amount">{{ formatTokenValue(token.value, token.token.decimals) }}</span>
+                  <span class="token-usd">${{ formatUsdValue(token) }}</span>
+                </div>
               </div>
             </div>
             <div v-else class="no-data">No CW-20 tokens found</div>
@@ -185,9 +208,14 @@
       await this.fetchAllTokens()
     },
     mounted() {
-      // Update window dimensions on mount
       this.updateWindowDimensions()
       window.addEventListener('resize', this.updateWindowDimensions)
+      
+      this.fetchTimeseriesData().then(() => {
+        if (this.$root.walletAddress) {
+          this.fetchAllTokens()
+        }
+      })
     },
     beforeUnmount() {
       window.removeEventListener('resize', this.updateWindowDimensions)
@@ -197,15 +225,14 @@
         immediate: true,
         handler: async function(newAddress) {
           if (newAddress) {
-            console.log('Wallet connected, fetching tokens...');
-            await this.fetchAllTokens();
+            await this.fetchTimeseriesData()
+            await this.fetchAllTokens()
           } else {
-            console.log('No wallet connected');
             this.tokenData = {
               native: [],
               erc20: [],
               cw20: []
-            };
+            }
           }
         }
       }
@@ -282,6 +309,63 @@
             })
           }
         }
+      },
+      formatUsdValue(token) {
+        const amount = Number(token.value) / Math.pow(10, token.token.decimals)
+        const price = this.getTokenPrice(token.token.symbol)
+        const total = amount * price
+        console.log(`Calculating USD value for ${token.token.symbol}:`, { amount, price, total })
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: true
+        }).format(total)
+      },
+      getTokenPrice(symbol) {
+        const tokenData = this.timeseriesData.find(t => t.symbol === symbol)
+        console.log(`Getting price for ${symbol}:`, tokenData?.usd_price || 0)
+        return tokenData ? parseFloat(tokenData.usd_price) : 0
+      },
+      async fetchTimeseriesData() {
+        try {
+          console.log('Fetching timeseries data...')
+          const response = await fetch(process.env.VUE_APP_GRAPHQL_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-hasura-admin-secret': process.env.VUE_APP_HASURA_ADMIN_SECRET
+            },
+            body: JSON.stringify({
+              query: `
+                query GetTokenTimeseries {
+                  token_timeseries(
+                    where: {
+                      symbol: {_in: ["SEI", "POPO", "MILLI", "WARP", "SPECTRE"]}
+                    }
+                    order_by: [{symbol: asc}, {rounded_time: desc}]
+                    distinct_on: [symbol]
+                  ) {
+                    symbol
+                    name
+                    usd_price
+                    rounded_time
+                  }
+                }
+              `
+            })
+          })
+          
+          const data = await response.json()
+          if (data.errors) {
+            console.error('GraphQL Errors:', data.errors)
+            return
+          }
+
+          this.timeseriesData = data.data?.token_timeseries || []
+          console.log('Received timeseries data:', this.timeseriesData)
+        } catch (error) {
+          console.error('Error fetching timeseries data:', error)
+        }
       }
     }
   }
@@ -313,13 +397,21 @@
   .token-item {
     display: flex;
     justify-content: space-between;
-    padding: 6px 8px;
+    padding: 8px;
     border-bottom: 1px solid #d4d4d4;
     font-size: 12px;
+    align-items: flex-start;
   }
   
   .token-item:last-child {
     border-bottom: none;
+  }
+  
+  .token-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 70%;
   }
   
   .token-symbol {
@@ -327,10 +419,37 @@
     color: #000080;
   }
   
-  .token-value {
+  .token-name {
+    color: #444;
+    font-style: italic;
+  }
+  
+  .token-address, .token-evm {
     font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #666;
+    word-break: break-all;
+  }
+  
+  .token-values {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    min-width: 30%;
+  }
+  
+  .token-amount {
+    font-family: 'Courier New', monospace;
+    color: #000080;
     text-align: right;
-    min-width: 100px;
+  }
+  
+  .token-usd {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #666;
+    text-align: right;
   }
   
   .no-data {
