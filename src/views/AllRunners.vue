@@ -78,6 +78,7 @@
         :initial-y="40"
         :initial-width="800"
         :initial-height="rightPanelHeight - 40"
+        :token-data="tokenData"
         @close="minimizeWindow('priceTable')"
         @token-action="handleTokenAction"
       />

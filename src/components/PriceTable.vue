@@ -1,4 +1,4 @@
-<template>
+t<template>
   <Win95Window 
     ref="window"
     title="Price Table"
@@ -28,14 +28,16 @@
             <thead>
               <tr>
                 <th @click="sort('symbol')" :class="getSortClass('symbol')">Symbol</th>
+                <th @click="sort('name')" :class="getSortClass('name')">Name</th>
                 <th @click="sort('price')" :class="getSortClass('price')">Current Price</th>
                 <th @click="sort('time')" :class="getSortClass('time')">Last Updated</th>
                 <th>Trade $SEI</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in sortedData" :key="row.symbol">
+              <tr v-for="row in sortedData" :key="row.symbol" :class="{ 'owned-token': row.owned }">
                 <td>{{ row.symbol }}</td>
+                <td>{{ row.name }}</td>
                 <td>${{ formatPrice(row.currentPrice) }}</td>
                 <td>{{ formatTime(row.lastUpdate) }}</td>
                 <td class="actions-cell">
@@ -86,25 +88,36 @@ export default {
     initialHeight: {
       type: Number,
       default: 300
+    },
+    tokenData: {
+      type: Object,
+      default: () => ({
+        native: [],
+        erc20: [],
+        cw20: []
+      })
     }
   },
   data() {
     return {
       timeseriesData: [],
       searchQuery: '',
-      sortKey: 'symbol',
-      sortOrder: 'asc',
+      sortKey: 'owned',
+      sortOrder: 'desc',
       loading: false,
-      error: null
+      error: null,
+      userTokens: new Set()
     }
   },
   computed: {
     processedData() {
       return Object.entries(this.chartData).map(([symbol, data]) => ({
         symbol,
+        name: data.name || symbol,
         currentPrice: data.prices[data.prices.length - 1],
         lastUpdate: data.times[data.times.length - 1],
-        amount: ''
+        amount: '',
+        owned: this.userTokens.has(symbol)
       }))
     },
     chartData() {
@@ -113,6 +126,7 @@ export default {
       this.timeseriesData.forEach(item => {
         if (!grouped[item.symbol]) {
           grouped[item.symbol] = {
+            name: item.name,
             times: [],
             prices: []
           }
@@ -135,6 +149,15 @@ export default {
         let aVal, bVal
         
         switch(this.sortKey) {
+          case 'owned':
+            if (a.owned === b.owned) {
+              return this.sortOrder === 'asc' 
+                ? a.symbol.localeCompare(b.symbol)
+                : b.symbol.localeCompare(a.symbol)
+            }
+            return this.sortOrder === 'asc' 
+              ? (a.owned ? 1 : -1)
+              : (a.owned ? -1 : 1)
           case 'symbol':
             return this.sortOrder === 'asc' 
               ? a.symbol.localeCompare(b.symbol)
@@ -222,6 +245,7 @@ export default {
                   }
                 ) {
                   symbol
+                  name
                   usd_price
                   rounded_time
                 }
@@ -251,6 +275,13 @@ export default {
         windowRef.updatePosition(x, y)
         windowRef.updateSize(width, height)
       }
+    },
+    updateUserTokensFromProps() {
+      this.userTokens.clear()
+      
+      this.tokenData.native?.forEach(token => this.userTokens.add(token.token.symbol))
+      this.tokenData.erc20?.forEach(token => this.userTokens.add(token.token.symbol))
+      this.tokenData.cw20?.forEach(token => this.userTokens.add(token.token.symbol))
     }
   },
   watch: {
@@ -259,6 +290,13 @@ export default {
         console.log('Processed data updated:', newData)
       },
       deep: true
+    },
+    tokenData: {
+      immediate: true,
+      deep: true,
+      handler() {
+        this.updateUserTokensFromProps()
+      }
     }
   }
 }
@@ -286,5 +324,14 @@ export default {
 
 .error-state {
   color: red;
+}
+
+.owned-token {
+  background-color: rgba(255, 215, 0, 0.15);
+  font-weight: bold;
+}
+
+.owned-token td {
+  border-color: #ffd700;
 }
 </style> 
