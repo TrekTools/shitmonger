@@ -69,6 +69,18 @@
         :initial-width="800"
         :initial-height="300"
         @close="minimizeWindow('tokenTable')"
+        @token-action="handleTokenAction"
+      />
+
+      <PriceTable 
+        v-if="!windowStates.priceTable.minimized"
+        :timeseries-data="processedTimeseriesData"
+        :initial-x="400"
+        :initial-y="initialWindowY + 400"
+        :initial-width="800"
+        :initial-height="300"
+        @close="minimizeWindow('priceTable')"
+        @token-action="handleTokenAction"
       />
 
       <!-- Taskbar -->
@@ -83,6 +95,7 @@
   import Win95Window from '@/components/Win95Window.vue'
   import PriceCharts from '@/components/PriceCharts.vue'
   import TokenTable from '@/components/TokenTable.vue'
+  import PriceTable from '@/components/PriceTable.vue'
   import Win95Taskbar from '@/components/Win95Taskbar.vue'
   import { getEvmAddress } from '../utils/addressQueries'
   import { fetchTokenData } from '../utils/tokenQueries'
@@ -93,6 +106,7 @@
       Win95Window,
       PriceCharts,
       TokenTable,
+      PriceTable,
       Win95Taskbar
     },
     data() {
@@ -108,7 +122,8 @@
         windowStates: {
           allRunners: { minimized: false, title: 'All Runners' },
           priceCharts: { minimized: false, title: 'Price Charts' },
-          tokenTable: { minimized: false, title: 'Token Table' }
+          tokenTable: { minimized: false, title: 'Token Table' },
+          priceTable: { minimized: false, title: 'Price Table' }
         }
       }
     },
@@ -212,6 +227,10 @@
         if (this.windowStates[windowId]) {
           this.windowStates[windowId].minimized = false
         }
+      },
+      handleTokenAction(action) {
+        console.log('Token action:', action)
+        // Handle the trade action here
       }
     }
   }
