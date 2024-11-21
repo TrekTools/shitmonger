@@ -118,6 +118,22 @@
       timeseriesData: {
         type: Array,
         default: () => []
+      },
+      initialX: {
+        type: Number,
+        default: 600
+      },
+      initialY: {
+        type: Number,
+        default: 100
+      },
+      initialWidth: {
+        type: Number,
+        default: 800
+      },
+      initialHeight: {
+        type: Number,
+        default: 300
       }
     },
     data() {
@@ -132,8 +148,10 @@
         return typeof window !== 'undefined' ? window.innerHeight - 500 : 100;
       },
       processedData() {
+        console.log('TimeseriesData received:', this.timeseriesData); // Debug log
         const processed = []
         const grouped = this.groupData()
+        console.log('Grouped data:', grouped); // Debug log
   
         Object.entries(grouped).forEach(([symbol, data]) => {
           if (data.length > 0) {
@@ -152,7 +170,8 @@
             processed.push(row)
           }
         })
-  
+        
+        console.log('Processed data:', processed); // Debug log
         return processed
       },
       filteredData() {

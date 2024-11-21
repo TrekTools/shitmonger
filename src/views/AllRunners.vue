@@ -63,9 +63,11 @@
       />
       <TokenTable 
         v-if="!windowStates.tokenTable.minimized"
-        :timeseries-data="timeseriesData"
+        :timeseries-data="processedTimeseriesData"
         :initial-x="600"
         :initial-y="initialWindowY + 450"
+        :initial-width="800"
+        :initial-height="300"
         @close="minimizeWindow('tokenTable')"
       />
 
@@ -121,6 +123,39 @@
             id,
             title: state.title
           }))
+      },
+      processedTimeseriesData() {
+        const processed = [];
+        
+        this.tokenData.native.forEach(token => {
+          processed.push({
+            symbol: token.token.symbol,
+            usd_price: token.value,
+            rounded_time: new Date().toISOString(),
+            type: 'NATIVE'
+          });
+        });
+
+        this.tokenData.erc20.forEach(token => {
+          processed.push({
+            symbol: token.token.symbol,
+            usd_price: token.value,
+            rounded_time: new Date().toISOString(),
+            type: 'ERC20'
+          });
+        });
+
+        this.tokenData.cw20.forEach(token => {
+          processed.push({
+            symbol: token.token.symbol,
+            usd_price: token.value,
+            rounded_time: new Date().toISOString(),
+            type: 'CW20'
+          });
+        });
+
+        console.log('Processed timeseries data:', processed);
+        return processed;
       }
     },
     async created() {
@@ -132,49 +167,31 @@
           this.loading = true;
           this.error = null;
 
-          // Get SEI address from wallet connection
-          const seiAddress = this.$root.walletAddress; // Get address from root instance
-          console.log('Wallet Address:', seiAddress); // Debug log
+          const seiAddress = this.$root.walletAddress;
+          console.log('Wallet Address:', seiAddress);
           
           if (!seiAddress) {
             this.error = 'No wallet address found. Please connect your wallet.';
             return;
           }
 
-          // First get EVM address
-          try {
-            const evmAddress = await getEvmAddress(seiAddress);
-            console.log('EVM Address fetched:', evmAddress);
-            
-            if (!evmAddress) {
-              console.warn('No EVM address found for SEI address:', seiAddress);
-            }
+          const evmAddress = await getEvmAddress(seiAddress);
+          console.log('EVM Address:', evmAddress);
 
-            // Now fetch token data with both addresses
-            const data = await fetchTokenData(seiAddress, evmAddress);
-            console.log('Token Data:', data);
+          const data = await fetchTokenData(seiAddress, evmAddress);
+          console.log('Token Data:', data);
 
-            this.tokenData = {
-              native: data.native || [],
-              erc20: evmAddress ? (data.erc20 || []) : [], // Only include if we have evmAddress
-              cw20: data.cw20 || []
-            };
+          this.tokenData = {
+            native: data.native || [],
+            erc20: evmAddress ? (data.erc20 || []) : [],
+            cw20: data.cw20 || []
+          };
 
-          } catch (evmError) {
-            console.error('Error fetching EVM address:', evmError);
-            // Still try to fetch SEI tokens even if EVM address fails
-            const data = await fetchTokenData(seiAddress, '');
-            this.tokenData = {
-              native: data.native || [],
-              erc20: [],
-              cw20: data.cw20 || []
-            };
-          }
         } catch (error) {
-          console.error('Error fetching tokens:', error)
-          this.error = error.message
+          console.error('Error in fetchAllTokens:', error);
+          this.error = error.message;
         } finally {
-          this.loading = false
+          this.loading = false;
         }
       },
       formatTokenValue(value, decimals = 6) {
