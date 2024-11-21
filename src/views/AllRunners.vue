@@ -74,11 +74,10 @@
 
       <PriceTable 
         v-if="!windowStates.priceTable.minimized"
-        :timeseries-data="processedTimeseriesData"
-        :initial-x="400"
-        :initial-y="initialWindowY + 400"
+        :initial-x="rightPanelX"
+        :initial-y="40"
         :initial-width="800"
-        :initial-height="300"
+        :initial-height="rightPanelHeight - 40"
         @close="minimizeWindow('priceTable')"
         @token-action="handleTokenAction"
       />
@@ -121,15 +120,23 @@
         error: null,
         windowStates: {
           allRunners: { minimized: false, title: 'All Runners' },
-          priceCharts: { minimized: false, title: 'Price Charts' },
-          tokenTable: { minimized: false, title: 'Token Table' },
+          priceCharts: { minimized: true, title: 'Price Charts' },
+          tokenTable: { minimized: true, title: 'Token Table' },
           priceTable: { minimized: false, title: 'Price Table' }
-        }
+        },
+        windowWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
+        windowHeight: typeof window !== 'undefined' ? window.innerHeight : 768
       }
     },
     computed: {
       initialWindowY() {
-        return typeof window !== 'undefined' ? window.innerHeight - 700 : 300;
+        return this.windowHeight - 700
+      },
+      rightPanelX() {
+        return this.windowWidth - 820
+      },
+      rightPanelHeight() {
+        return this.windowHeight - 100
       },
       minimizedWindowsList() {
         return Object.entries(this.windowStates)
@@ -175,6 +182,32 @@
     },
     async created() {
       await this.fetchAllTokens()
+    },
+    mounted() {
+      // Update window dimensions on mount
+      this.updateWindowDimensions()
+      window.addEventListener('resize', this.updateWindowDimensions)
+    },
+    beforeUnmount() {
+      window.removeEventListener('resize', this.updateWindowDimensions)
+    },
+    watch: {
+      '$root.walletAddress': {
+        immediate: true,
+        handler: async function(newAddress) {
+          if (newAddress) {
+            console.log('Wallet connected, fetching tokens...');
+            await this.fetchAllTokens();
+          } else {
+            console.log('No wallet connected');
+            this.tokenData = {
+              native: [],
+              erc20: [],
+              cw20: []
+            };
+          }
+        }
+      }
     },
     methods: {
       async fetchAllTokens() {
@@ -231,6 +264,23 @@
       handleTokenAction(action) {
         console.log('Token action:', action)
         // Handle the trade action here
+      },
+      updateWindowDimensions() {
+        this.windowWidth = window.innerWidth
+        this.windowHeight = window.innerHeight
+        
+        // Update PriceTable position if it exists and is not minimized
+        if (!this.windowStates.priceTable.minimized) {
+          const priceTable = this.$refs.priceTable
+          if (priceTable) {
+            priceTable.updatePosition({
+              x: this.rightPanelX,
+              y: 40,
+              width: 800,
+              height: this.rightPanelHeight - 40
+            })
+          }
+        }
       }
     }
   }

@@ -1,11 +1,13 @@
 <template>
   <Win95Window 
+    ref="window"
     title="Price Table"
     :initial-x="initialX"
     :initial-y="initialY"
-    :initial-width="800"
-    :initial-height="300"
+    :initial-width="initialWidth"
+    :initial-height="initialHeight"
     @close="$emit('close')"
+    class="price-table-window"
   >
     <div class="table-panel">
       <div v-if="loading" class="loading-state">Loading price data...</div>
@@ -242,6 +244,13 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    updatePosition({ x, y, width, height }) {
+      const windowRef = this.$refs.window
+      if (windowRef) {
+        windowRef.updatePosition(x, y)
+        windowRef.updateSize(width, height)
+      }
     }
   },
   watch: {
@@ -256,8 +265,13 @@ export default {
 </script>
 
 <style scoped>
+.price-table-window {
+  position: absolute;
+  z-index: 1;
+}
+
 .table-panel {
-  height: calc(100% - 32px);
+  height: 100%;
   overflow-y: auto;
   padding: 16px;
 }
